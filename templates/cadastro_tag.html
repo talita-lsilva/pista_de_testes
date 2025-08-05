@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block title %}Gerenciamento de Tags{% endblock %}
+
+{% block content %}
+<div class="container my-4 my-md-5">
+  <div class="card shadow-sm border-0 rounded-lg">
+    <div class="card-header bg-white py-3 px-4 border-bottom-0">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+        <h2 class="h4 fw-bold text-primary mb-3 mb-md-0">
+          <i class="bi bi-tags-fill me-2"></i>Gerenciamento de Tags
+        </h2>
+       <div class="d-flex gap-2">
+    <a href="{{ url_for('form_cadastro') }}" class="btn btn-primary d-flex align-items-center">
+        <i class="bi bi-plus-circle me-2"></i>
+        <span>Cadastrar Tag</span>
+    </a>
+    <a href="{{ url_for('index') }}" class="btn btn-info text-white d-flex align-items-center">
+        <i class="bi bi-cone-striped me-2"></i>
+        <span>Na Pista</span>
+    </a>
+    <a href="{{ url_for('historico') }}" class="btn btn-outline-secondary d-flex align-items-center">
+        <i class="bi bi-clock-history me-2"></i>
+        <span>Histórico</span>
+    </a>
+</div>
+      </div>
+    </div>
+
+    <div class="p-3 border-bottom bg-light">
+        <input type="text" id="filtroTags" class="form-control" placeholder="Digite para buscar em todas as colunas...">
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-striped mb-0" id="tags-table">
+          <thead class="table-light">
+            <tr>
+              <th class="py-3 px-4">Tag ID</th>
+              <th class="py-3 px-4">Usuário</th>
+              <th class="py-3 px-4">E-mail</th>
+              <th class="py-3 px-4">Modelo</th>
+              <th class="py-3 px-4 text-center">Acesso</th>
+              <th class="py-3 px-4 text-center">Status</th>
+              <th class="py-3 px-4 text-center">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in tags %}
+            <tr class="align-middle">
+              <td class="px-4"><span class="font-monospace">{{ t.tag_id }}</span></td>
+              <td class="px-4">{{ t.user_name }}</td>
+              <td class="px-4 text-muted">{{ t.email }}</td>
+              <td class="px-4">{{ t.modelo }}</td>
+              <td class="px-4 text-center">
+                {% if t.has_access %}
+                  <span class="badge rounded-pill bg-success-subtle text-success-emphasis p-2">Liberado</span>
+                {% else %}
+                  <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis p-2">Negado</span>
+                {% endif %}
+              </td>
+              <td class="px-4 text-center">
+                {% if t.status == 'Na Pista' %}
+                  <span class="badge rounded-pill bg-info-subtle text-info-emphasis p-2">
+                    <i class="bi bi-car-front-fill me-1"></i>{{ t.status }}
+                  </span>
+                {% else %}
+                  <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis p-2">
+                    <i class="bi bi-check-circle me-1"></i>{{ t.status }}
+                  </span>
+                {% endif %}
+              </td>
+              <td class="px-4 text-center">
+                {% if t.status == 'Na Pista' %}
+                  <button class="btn btn-sm btn-outline-danger" onclick="showConfirmModal('{{ t.tag_id }}', '/registrar_saida/{{ t.tag_id }}')">
+                    <i class="bi bi-box-arrow-right"></i> Registrar Saída
+                  </button>
+                {% else %}
+                  <a href="{{ url_for('form_editar_tag', tag_id=t.tag_id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil-square"></i> Editar
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-5">
+                <p class="text-muted mt-2 mb-0">Nenhuma tag cadastrada no momento.</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Ação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja registrar a saída para esta tag?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmExitBtn">Confirmar Saída</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    let currentUrl = null;
+    window.showConfirmModal = function (tagId, url) {
+        currentUrl = url;
+        confirmModal.show();
+    };
+    async function registrarSaida() {
+        if (!currentUrl) return;
+        try {
+            const response = await fetch(currentUrl, { method: 'POST' });
+            const result = await response.json();
+            if (response.ok && result.status === 'ok') {
+                confirmModal.hide();
+                location.reload();
+            } else {
+                alert('Erro ao registrar saída: ' + (result.error || 'Desconhecido'));
+                confirmModal.hide();
+            }
+        } catch (err) {
+            alert('Erro de conexão.');
+            confirmModal.hide();
+        } finally {
+            currentUrl = null;
+        }
+    }
+    if (document.getElementById('confirmExitBtn')) {
+        document.getElementById('confirmExitBtn').addEventListener('click', registrarSaida);
+    }
+
+    const filtroInput = document.getElementById('filtroTags');
+    const corpoTabela = document.getElementById('tags-table').getElementsByTagName('tbody')[0];
+    const linhas = corpoTabela.getElementsByTagName('tr');
+    if (filtroInput) {
+        filtroInput.addEventListener('keyup', function() {
+            const termoBusca = filtroInput.value.toLowerCase();
+            for (let i = 0; i < linhas.length; i++) {
+                const linha = linhas[i];
+                if (linha.getElementsByTagName('td').length > 1) {
+                    const textoLinha = linha.textContent || linha.innerText;
+                    if (textoLinha.toLowerCase().indexOf(termoBusca) > -1) {
+                        linha.style.display = "";
+                    } else {
+                        linha.style.display = "none";
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

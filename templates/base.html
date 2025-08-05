@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Controle de Acesso{% endblock %}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        .main-content {
+            flex: 1;
+        }
+        .navbar-custom {
+            background-color: #243b83;
+        }
+        .navbar-brand img, .navbar-logo-right {
+            max-height: 40px;
+        }
+        .alerta-fixo {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1050;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translate(-50%, -20px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+        .fade-in-down {
+            animation: fadeInDown 0.4s ease;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm">
+        <div class="container-fluid position-relative">
+            <a class="navbar-brand d-flex align-items-center gap-3" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='stellantis.png') }}" alt="Logo Stellantis" style="max-height: 40px;" onerror="this.style.display='none'">
+            </a>
+            <div class="position-absolute top-50 start-50 translate-middle text-white text-center">
+                <span class="fs-5 fw-bold">Controle de Acesso à Pista</span>
+            </div>
+            <div class="d-none d-md-block ms-auto">
+                <img src="{{ url_for('static', filename='DAS.png') }}" alt="Logo DAS" style="max-height: 40px;" onerror="this.style.display='none'">
+            </div>
+        </div>
+    </nav>
+</header>
+
+<!-- Alerta dinâmico exibido no topo -->
+<div id="alert-container"></div>
+
+<main class="main-content container pt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                {% if category not in ['danger', 'warning', 'success'] %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Bootstrap + Socket.IO -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<!-- Áudios de alerta -->
+<audio id="audio_alerta_negativo" src="{{ url_for('static', filename='alerta.mp3') }}" preload="auto"></audio>
+<audio id="audio_alerta_sucesso" src="{{ url_for('static', filename='sucesso.mp3') }}" preload="auto"></audio>
+
+<script type="text/javascript">
+    var socket;
+    document.addEventListener('DOMContentLoaded', function () {
+        try {
+            socket = io();
+
+            // Redireciona para página de cadastro ao escanear nova tag
+            socket.on('nova_tag_escaneada', function (data) {
+                window.location.href = `/cadastro?tag_id=${data.tag_id}`;
+            });
+
+            // ALERTAS EM TEMPO REAL
+            socket.on('alerta', function (data) {
+                const alertContainer = document.getElementById('alert-container');
+                alertContainer.innerHTML = '';
+
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alerta-fixo alert alert-${data.category} fade-in-down`;
+                alertDiv.setAttribute('role', 'alert');
+
+                // Ícone baseado na categoria
+                let iconClass = 'bi-exclamation-triangle-fill';
+                if (data.category === 'success') {
+                    iconClass = 'bi-check-circle-fill';
+                }
+
+                alertDiv.innerHTML = `
+                    <i class="bi ${iconClass} fs-5"></i>
+                    <strong>${data.message}</strong>
+                    <button type="button" class="btn-close ms-auto" aria-label="Fechar" onclick="this.parentElement.remove()"></button>
+                `;
+
+                alertContainer.appendChild(alertDiv);
+
+                // Som correspondente
+                if (data.category === 'success') {
+                    document.getElementById('audio_alerta_sucesso').play();
+                } else {
+                    document.getElementById('audio_alerta_negativo').play();
+                }
+
+                // Remove o alerta automaticamente após 10 segundos
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 10000);
+            });
+
+        } catch (e) {
+            console.error("Erro ao conectar com o WebSocket:", e);
+        }
+    });
+</script>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

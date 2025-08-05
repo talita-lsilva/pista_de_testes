@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Histórico de Acessos{% endblock %}
+
+{% block content %}
+<div class="container my-4 my-md-5">
+  <div class="card shadow-sm border-0 rounded-lg">
+    <div class="card-header bg-white py-3 px-4 border-bottom-0">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+        <h2 class="h4 fw-bold text-primary mb-3 mb-md-0"><i class="bi bi-clock-history me-2"></i>Histórico de Acessos</h2>
+        
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-success d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#modalRelatorio">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i>
+            <span>Gerar Relatório</span>
+          </button>
+          <a href="{{ url_for('index') }}" class="btn btn-info text-white d-flex align-items-center">
+            <i class="bi bi-cone-striped me-2"></i>
+            <span>Na Pista</span>
+          </a>
+          <a href="{{ url_for('gerenciar_tags') }}" class="btn btn-outline-secondary d-flex align-items-center">
+            <i class="bi bi-tags me-2"></i>
+            <span>Gerenciar Tags</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-striped mb-0">
+            <thead class="table-light">
+                <tr>
+                  <th scope="col" class="py-3 px-4">Tag ID</th>
+                  <th scope="col" class="py-3 px-4">Usuário</th>
+                  <th scope="col" class="py-3 px-4">E-mail</th>
+                  <th scope="col" class="py-3 px-4">Chassi</th>
+                  <th scope="col" class="py-3 px-4">Modelo</th>
+                  <th scope="col" class="py-3 px-4">Entrada</th>
+                  <th scope="col" class="py-3 px-4">Saída</th>
+                  <th scope="col" class="py-3 px-4 text-center">Alerta</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for log in logs %}
+            <tr class="align-middle">
+              <td class="px-4"><span class="font-monospace">{{ log.tag_id }}</span></td>
+              <td class="px-4">{{ log.user_name_snapshot or 'Desconhecido' }}</td>
+              <td class="px-4 text-muted">{{ log.email_snapshot or 'N/A' }}</td>
+              <td class="px-4 text-muted">{{ log.chassi_snapshot or 'N/A' }}</td>
+              <td class="px-4 text-muted">{{ log.modelo_snapshot or 'N/A' }}</td>
+              <td class="px-4">{{ log.entry_time.strftime('%d/%m/%Y %H:%M') if log.entry_time else '-' }}</td>
+              <td class="px-4">{{ log.exit_time.strftime('%d/%m/%Y %H:%M') if log.exit_time else '-' }}</td>
+              <td class="px-4 text-center">
+                {% if log.alert %}
+                  <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis p-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> Sim</span>
+                {% else %}
+                  <span class="badge rounded-pill bg-success-subtle text-success-emphasis p-2"><i class="bi bi-check-circle-fill me-1"></i> Não</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-5">
+                <p class="text-muted mt-2 mb-0">Nenhum registro de acesso encontrado.</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalRelatorio" tabindex="-1" aria-labelledby="modalRelatorioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalRelatorioLabel">Gerar Relatório de Acesso</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Selecione o período para o qual deseja gerar o relatório em formato CSV:</p>
+        <div class="list-group">
+          <a href="{{ url_for('exportar_csv', dias=1) }}" class="list-group-item list-group-item-action">Últimas 24 horas</a>
+          <a href="{{ url_for('exportar_csv', dias=3) }}" class="list-group-item list-group-item-action">Últimos 3 dias</a>
+          <a href="{{ url_for('exportar_csv', dias=7) }}" class="list-group-item list-group-item-action">Últimos 7 dias</a>
+          <a href="{{ url_for('exportar_csv', dias=30) }}" class="list-group-item list-group-item-action">Últimos 30 dias</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

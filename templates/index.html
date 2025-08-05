@@ -1,0 +1,26 @@
+
+{% extends 'base.html' %}
+{% block title %}Histórico de Acessos{% endblock %}
+{% block content %}
+<h2>Últimos acessos</h2>
+<table class="table table-striped table-bordered mt-3">
+  <thead>
+    <tr>
+      <th>Data/Hora</th>
+      <th>Tag ID</th>
+      <th>Usuário</th>
+      <th>Alerta</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in registros %}
+    <tr class="{% if r.alert %}table-danger{% endif %}">
+      <td>{{ r.event_time }}</td>
+      <td>{{ r.tag_id }}</td>
+      <td>{{ r.user_name }}</td>
+      <td>{{ 'Sim' if r.alert else 'Não' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
